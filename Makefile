@@ -25,6 +25,6 @@ image:
 	sudo zip pwnagotchi-raspbian-lite-$(PWN_VERSION).zip pwnagotchi-raspbian-lite-$(PWN_VERSION).sha256 pwnagotchi-raspbian-lite-$(PWN_VERSION).img
 
 clean:
-	rm -rf /tmp/packer-builder-arm-image
-	rm -f pwnagotchi-raspbian-lite-*.zip pwnagotchi-raspbian-lite-*.img pwnagotchi-raspbian-lite-*.sha256
-	rm -rf builder/output-pwnagotchi  builder/packer_cache
+	sudo rm -rf /tmp/packer-builder-arm-image
+	sudo rm -f pwnagotchi-raspbian-lite-*.zip pwnagotchi-raspbian-lite-*.img pwnagotchi-raspbian-lite-*.sha256
+	sudo rm -rf builder/output-pwnagotchi  builder/packer_cache
