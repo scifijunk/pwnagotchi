@@ -136,8 +136,8 @@
 
   - name: Add re4son-kernel repo key
     apt_key:
-      url: https://re4son-kernel.com/keys/http/archive-key.asc
-      state: present
+      keyserver: pgp.mit.edu
+      id: 11764EE8AC24832F
 
   - name: Add re4son-kernel repository
     apt_repository:
