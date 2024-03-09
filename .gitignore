@@ -18,6 +18,8 @@ pwnagotchi.egg-info
 *backup*.tgz
 *backup*.gz
 .vscode
+pwnagotchi-raspbian-lite-master.sha256
+pwnagotchi-raspbian-lite-master.zip
 
 # Environments
 .env
