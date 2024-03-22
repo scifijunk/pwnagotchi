@@ -241,7 +241,7 @@
 
   - name: clone pwnagotchi plugins repository
     git:
-      repo: https://github.com/evilsocket/pwnagotchi-plugins-contrib.git
+      repo: https://git.chadwaltercummings.me/scifijunkie/pwnagotchi-plugins-contrib.git
       dest: /usr/local/share/pwnagotchi/availaible-plugins
 
   - name: fetch pwnagotchi version
