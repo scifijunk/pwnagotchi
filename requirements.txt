@@ -16,7 +16,7 @@ Pillow==6.2.0
 spidev==3.4
 gast==0.2.2
 flask==2.0.1
-flask-cors==3.0.7
+flask-cors==4.0.0
 flask-wtf==0.14.3
 dbus-python==1.2.12
 toml==0.10.0
