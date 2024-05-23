@@ -2,6 +2,7 @@
 *.img.bmap
 *.pcap
 *.po~
+*.sha256
 preview.png
 __pycache__
 _backups
@@ -18,8 +19,6 @@ pwnagotchi.egg-info
 *backup*.tgz
 *backup*.gz
 .vscode
-pwnagotchi-raspbian-lite-master.sha256
-pwnagotchi-raspbian-lite-master.zip
 
 # Environments
 .env

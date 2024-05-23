@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+        release_version:
+          description: 'Release version'
+          required: true
+          type: string
+        pishrink:
+          description: 'pishrink Script'
+          default: 'https://raw.githubusercontent.com/Drewsif/PiShrink/master/pishrink.sh'
+          type: string
+        z_compress_args:
+          description: '7z compress args'
+          default: '7z a -t7z -mx=9'
+          type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # - name: Set VERSION variable
+    #   run: |
+    #     VERSION=$(awk '/__version__ /{print $NF}' ./pwnagotchi/_version.py | tr -d "'")
+    #   env:
+    #     VERSION: ${{ steps.set-version.outputs.version }}  # Use the extracted version
+
+    - name: Show Version
+      run: |
+        # Use the $VERSION variable in your build or deployment steps
+        echo "Using VERSION: ${{ inputs.release_version }}"
+
+    - name: Set _version.py correctly using the env variable
+      run: |
+        sed -i "s#.*__version__.*#__version__='$PWN_VERSION'#" pwnagotchi/_version.py
+      env:
+        PWN_VERSION: ${{ inputs.release_version }}
+
+    - name: Install language dependencies
+      run: sudo apt-get install -y gettext
+
+    - name: Languages
+      run: make langs
+
+    - name: Image
+      run: make image
+      env:
+        PWN_VERSION: ${{ inputs.release_version }}
+
+    - name: Shrink Image
+      run: |
+        ls -a -s -h
+        wget ${{ inputs.pishrink }}
+        chmod +x pishrink.sh
+        sudo mv pishrink.sh /usr/local/bin
+        sudo pishrink.sh ./pwnagotchi-${{ inputs.release_version }}.img
+
+    - uses: edgarrc/action-7z@v1
+      with:
+        args: ${{ inputs.z_compress_args }} pwnagotchi-${{ inputs.release_version }}.7z ./pwnagotchi-${{ inputs.release_version }}.img
+
+    - name: sha256sum 7z
+      run: |
+        sudo sha256sum ./pwnagotchi-${{ inputs.release_version }}.7z >  ./pwnagotchi-${{ inputs.release_version }}.sha256
+
+    - name: Create GitHub Release
+      id: create_new_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ inputs.release_version }}
+        release_name: Release ${{ inputs.release_version }}
+    - name: Upload GitHub Release sha
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_new_release.outputs.upload_url }}
+        asset_path: ./pwnagotchi-${{ inputs.release_version }}.sha256
+        asset_name: pwnagotchi-v${{ inputs.release_version }}.sha256
+        asset_content_type: appliction/text
+    - name: Upload GitHub Release Zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_new_release.outputs.upload_url }}
+        asset_path: ./pwnagotchi-${{ inputs.release_version }}.7z
+        asset_name: pwnagotchi-v${{ inputs.release_version }}.7z
+        asset_content_type: appliction/zip
