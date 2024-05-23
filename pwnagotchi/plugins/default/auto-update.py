@@ -7,14 +7,15 @@ import platform
 import shutil
 import glob
 from threading import Lock
+import time
 
 import pwnagotchi
 import pwnagotchi.plugins as plugins
 from pwnagotchi.utils import StatusFile, parse_version as version_to_tuple
 
 
-def check(version, repo, native=True):
-    logging.debug("checking remote version for %s, local is %s" % (repo, version))
+def check_remote_version(version, repo, native=True):
+    logging.debug("Checking remote version for %s, local is %s" % (repo, version))
     info = {
         'repo': repo,
         'current': version,
@@ -24,81 +25,92 @@ def check(version, repo, native=True):
         'arch': platform.machine()
     }
 
-    resp = requests.get("https://api.github.com/repos/%s/releases/latest" % repo)
-    latest = resp.json()
-    info['available'] = latest_ver = latest['tag_name'].replace('v', '')
-    is_arm = info['arch'].startswith('arm')
+    try:
+        resp = requests.get(f"https://api.github.com/repos/{repo}/releases/latest")
+        resp.raise_for_status()
+        latest = resp.json()
+        info['available'] = latest_ver = latest['tag_name'].replace('v', '')
 
-    local = version_to_tuple(info['current'])
-    remote = version_to_tuple(latest_ver)
-    if remote > local:
-        if not native:
-            info['url'] = "https://github.com/%s/archive/%s.zip" % (repo, latest['tag_name'])
-        else:
-            # check if this release is compatible with arm6
-            for asset in latest['assets']:
-                download_url = asset['browser_download_url']
-                if download_url.endswith('.zip') and (
-                        info['arch'] in download_url or (is_arm and 'armhf' in download_url)):
-                    info['url'] = download_url
-                    break
+        is_arm = info['arch'].startswith('arm')
+        local = version_to_tuple(info['current'])
+        remote = version_to_tuple(latest_ver)
+
+        if remote > local:
+            if not native:
+                info['url'] = f"https://github.com/{repo}/archive/{latest['tag_name']}.zip"
+            else:
+                for asset in latest['assets']:
+                    download_url = asset['browser_download_url']
+                    if download_url.endswith('.zip') and (
+                            info['arch'] in download_url or (is_arm and 'armhf' in download_url)):
+                        info['url'] = download_url
+                        break
+    except Exception as e:
+        logging.error(f"Error checking remote version for {repo}: {e}")
 
     return info
 
 
 def make_path_for(name):
     path = os.path.join("/tmp/updates/", name)
-    if os.path.exists(path):
-        logging.debug("[update] deleting %s" % path)
-        shutil.rmtree(path, ignore_errors=True, onerror=None)
-    os.makedirs(path)
+    try:
+        if os.path.exists(path):
+            logging.debug("[update] Deleting %s" % path)
+            shutil.rmtree(path, ignore_errors=True, onerror=None)
+        os.makedirs(path)
+    except Exception as e:
+        logging.error(f"Error creating path for {name}: {e}")
     return path
 
 
 def download_and_unzip(name, path, display, update):
-    target = "%s_%s.zip" % (name, update['available'])
+    target = f"{name}_{update['available']}.zip"
     target_path = os.path.join(path, target)
 
-    logging.info("[update] downloading %s to %s ..." % (update['url'], target_path))
-    display.update(force=True, new_data={'status': 'Downloading %s %s ...' % (name, update['available'])})
+    try:
+        logging.info("[update] Downloading %s to %s ..." % (update['url'], target_path))
+        display.update(force=True, new_data={'status': f'Downloading {name} {update["available"]} ...'})
+        subprocess.run(['wget', '-q', update['url'], '-O', target_path], check=True)
 
-    os.system('wget -q "%s" -O "%s"' % (update['url'], target_path))
+        logging.info("[update] Extracting %s to %s ..." % (target_path, path))
+        display.update(force=True, new_data={'status': f'Extracting {name} {update["available"]} ...'})
+        subprocess.run(['unzip', target_path, '-d', path], check=True)
 
-    logging.info("[update] extracting %s to %s ..." % (target_path, path))
-    display.update(force=True, new_data={'status': 'Extracting %s %s ...' % (name, update['available'])})
-
-    os.system('unzip "%s" -d "%s"' % (target_path, path))
+    except Exception as e:
+        logging.error(f"Error downloading and unzipping {name} update: {e}")
 
 
 def verify(name, path, source_path, display, update):
-    display.update(force=True, new_data={'status': 'Verifying %s %s ...' % (name, update['available'])})
+    display.update(force=True, new_data={'status': f'Verifying {name} {update["available"]} ...'})
 
-    checksums = glob.glob("%s/*.sha256" % path)
-    if len(checksums) == 0:
-        if update['native']:
-            logging.warning("[update] native update without SHA256 checksum file")
-            return False
+    try:
+        checksums = glob.glob(f"{path}/*.sha256")
+        if len(checksums) == 0:
+            if update['native']:
+                logging.warning("[update] Native update without SHA256 checksum file")
+                return False
+        else:
+            checksum = checksums[0]
+            logging.info(f"[update] Verifying {checksum} for {source_path} ...")
 
-    else:
-        checksum = checksums[0]
+            with open(checksum, 'rt') as fp:
+                expected = fp.read().split('=')[1].strip().lower()
 
-        logging.info("[update] verifying %s for %s ..." % (checksum, source_path))
+            real = subprocess.getoutput(f'sha256sum "{source_path}"').split(' ')[0].strip().lower()
 
-        with open(checksum, 'rt') as fp:
-            expected = fp.read().split('=')[1].strip().lower()
+            if real != expected:
+                logging.warning(f"[update] Checksum mismatch for {source_path}: expected={expected} got={real}")
+                return False
 
-        real = subprocess.getoutput('sha256sum "%s"' % source_path).split(' ')[0].strip().lower()
-
-        if real != expected:
-            logging.warning("[update] checksum mismatch for %s: expected=%s got=%s" % (source_path, expected, real))
-            return False
+    except Exception as e:
+        logging.error(f"Error verifying {name} update: {e}")
+        return False
 
     return True
 
 
 def install(display, update):
     name = update['repo'].split('/')[1]
-
     path = make_path_for(name)
 
     download_and_unzip(name, path, display, update)
@@ -107,37 +119,70 @@ def install(display, update):
     if not verify(name, path, source_path, display, update):
         return False
 
-    logging.info("[update] installing %s ..." % name)
-    display.update(force=True, new_data={'status': 'Installing %s %s ...' % (name, update['available'])})
+    try:
+        logging.info("[update] Installing %s ..." % name)
+        display.update(force=True, new_data={'status': f'Installing {name} {update["available"]} ...'})
 
-    if update['native']:
-        dest_path = subprocess.getoutput("which %s" % name)
-        if dest_path == "":
-            logging.warning("[update] can't find path for %s" % name)
-            return False
+        if update['native']:
+            dest_path = subprocess.getoutput(f"which {name}")
+            if dest_path == "":
+                logging.warning(f"[update] Can't find path for {name}")
+                return False
 
-        logging.info("[update] stopping %s ..." % update['service'])
-        os.system("service %s stop" % update['service'])
-        os.system("mv %s %s" % (source_path, dest_path))
-        logging.info("[update] restarting %s ..." % update['service'])
-        os.system("service %s start" % update['service'])
-    else:
-        if not os.path.exists(source_path):
-            source_path = "%s-%s" % (source_path, update['available'])
+            logging.info(f"[update] Stopping {update['service']} ...")
+            subprocess.run(["service", update['service'], "stop"], check=True)
 
-        # setup.py is going to install data files for us
-        os.system("cd %s && pip3 install ." % source_path)
+            subprocess.run(["mv", source_path, dest_path], check=True)
+            logging.info(f"[update] Restarting {update['service']} ...")
+            subprocess.run(["service", update['service'], "start"], check=True)
+        else:
+            if not os.path.exists(source_path):
+                source_path = f"{source_path}-{update['available']}"
+
+            subprocess.run(["cd", source_path, "&&", "pip3", "install", "."], check=True, shell=True)
+
+    except Exception as e:
+        logging.error(f"Error installing {name} update: {e}")
+        return False
 
     return True
 
 
 def parse_version(cmd):
-    out = subprocess.getoutput(cmd)
-    for part in out.split(' '):
-        part = part.replace('v', '').strip()
-        if re.search(r'^\d+\.\d+\.\d+.*$', part):
-            return part
-    raise Exception('could not parse version from "%s": output=\n%s' % (cmd, out))
+    try:
+        out = subprocess.getoutput(cmd)
+        for part in out.split(' '):
+            part = part.replace('v', '').strip()
+            if re.search(r'^\d+\.\d+\.\d+.*$', part):
+                return part
+    except Exception as e:
+        logging.error(f"Error parsing version from '{cmd}': {e}")
+    raise Exception(f'Could not parse version from "{cmd}": output=\n{out}')
+
+
+def check_remote_version_with_retry(version, repo, native=True, max_retries=3):
+    retries = 0
+    while retries < max_retries:
+        try:
+            resp = requests.get(f"https://api.github.com/repos/{repo}/releases/latest")
+            resp.raise_for_status()
+            latest = resp.json()
+            return check_remote_version(version, repo, native)
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                wait_time = 2 ** retries
+                print(f"Rate limit exceeded. Retrying after {wait_time} seconds...")
+                time.sleep(wait_time)
+                retries += 1
+            else:
+                print(f"Error checking remote version for {repo}: {e}")
+                raise e
+        except requests.exceptions.ConnectionError as ce:
+            wait_time = 2 ** retries
+            print(f"Connection error. Retrying after {wait_time} seconds...")
+            time.sleep(wait_time)
+            retries += 1
+    raise Exception(f"Failed to check remote version for {repo} after {max_retries} retries.")
 
 
 class AutoUpdate(plugins.Plugin):
@@ -157,23 +202,23 @@ class AutoUpdate(plugins.Plugin):
             logging.error("[update] main.plugins.auto-update.interval is not set")
             return
         self.ready = True
-        logging.info("[update] plugin loaded.")
+        logging.info("[update] Plugin loaded.")
 
     def on_internet_available(self, agent):
         if self.lock.locked():
             return
 
         with self.lock:
-            logging.debug("[update] internet connectivity is available (ready %s)" % self.ready)
+            logging.debug("[update] Internet connectivity is available (ready %s)" % self.ready)
 
             if not self.ready:
                 return
 
             if self.status.newer_then_hours(self.options['interval']):
-                logging.debug("[update] last check happened less than %d hours ago" % self.options['interval'])
+                logging.debug("[update] Last check happened less than %d hours ago" % self.options['interval'])
                 return
 
-            logging.info("[update] checking for updates ...")
+            logging.info("[update] Checking for updates ...")
 
             display = agent.view()
             prev_status = display.get('status')
@@ -189,11 +234,10 @@ class AutoUpdate(plugins.Plugin):
                 ]
 
                 for repo, local_version, is_native, svc_name in to_check:
-                    info = check(local_version, repo, is_native)
+                    info = check_remote_version_with_retry(local_version, repo, is_native)
                     if info['url'] is not None:
                         logging.warning(
-                            "update for %s available (local version is '%s'): %s" % (
-                                repo, info['current'], info['url']))
+                            f"Update for {repo} available (local version is '{info['current']}'): {info['url']}")
                         info['service'] = svc_name
                         to_install.append(info)
 
@@ -207,9 +251,9 @@ class AutoUpdate(plugins.Plugin):
                             if install(display, update):
                                 num_installed += 1
                     else:
-                        prev_status = '%d new update%c available!' % (num_updates, 's' if num_updates > 1 else '')
+                        prev_status = f"{num_updates} new update{'s' if num_updates > 1 else ''} available!"
 
-                logging.info("[update] done")
+                logging.info("[update] Done")
 
                 self.status.update()
 

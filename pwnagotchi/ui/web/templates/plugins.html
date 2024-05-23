@@ -8,54 +8,61 @@ Plugins
 {% block styles %}
   {{ super() }}
   <style>
-  .tooltip {
-    position: relative;
-    display: inline-block;
-  }
-  .tooltip .tooltiptext {
-    visibility: hidden;
-    width: 200px;
-    background-color: #3388cc;
-    color: #fff;
-    text-align: center;
-    border-radius: 10px;
-    border: 2px solid black;
-    padding: 20px 0;
+    .plugins-box {
+      position: relative;
+      display: inline-block;
+      margin: 10px; 
+    }
 
-    position: absolute;
-    z-index: 1;
-    top: 100%;
-    left: 50%;
-    margin-left: -100px;
-  }
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
 
-  .tooltip:hover .tooltiptext {
-    visibility: visible;
-  }
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 100%;
+      max-width: 400px; 
+      background-color: #3388cc;
+      color: #fff;
+      text-align: center;
+      border-radius: 10px;
+      border: 2px solid black;
+      padding: 20px 0;
+      position: fixed;
+      z-index: 1;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
 
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+    }
   </style>
 {% endblock %}
 
 {% block script %}
-$(function(){
-    $('input[type=checkbox]').change(function(e) {
+  $(function(){
+      $('input[type=checkbox]').change(function(e) {
           var checkbox = $(this);
           var form = checkbox.closest('form');
           var url = form.attr('action');
 
           $.ajax({
-             type: 'POST',
-             url: url,
-             data: form.serialize(),
-             success: function(data) {
-                  if( data.indexOf('failed') != -1 ) {
+              type: 'POST',
+              url: url,
+              data: form.serialize(),
+              success: function(data) {
+                  if (data.indexOf('failed') != -1) {
                       alert('Could not be toggled.');
                   }
-            }
-        });
-    });
-});
+              }
+          });
+      });
+  });
 {% endblock %}
+
 {% block content %}
 <div id="container">
     {% for name in database.keys() | sort %}
@@ -65,6 +72,11 @@ $(function(){
             <h4>
               <a {% if name in loaded and loaded[name].on_webhook is defined %} href="/plugins/{{name}}" {% endif %}>{{name}}</a>
             </h4>
+            {% if has_info %}
+              {% if loaded[name].__version__ is defined %}
+                <p>v{{ loaded[name].__version__ }}</p>
+              {% endif %}
+            {% endif %}
             {% if has_info %}
               <span class="tooltiptext">{{ loaded[name].__description__ }}</span>
             {% else %}

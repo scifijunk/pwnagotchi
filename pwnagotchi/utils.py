@@ -251,8 +251,14 @@ def load_config(args):
     elif config['ui']['display']['type'] in ('ws_3', 'ws3', 'waveshare_3', 'waveshare3'):
         config['ui']['display']['type'] = 'waveshare_3'
 
+    elif config['ui']['display']['type'] in ('ws_4', 'ws4', 'waveshare_4', 'waveshare4'):
+        config['ui']['display']['type'] = 'waveshare_4'
+
     elif config['ui']['display']['type'] in ('ws_27inch', 'ws27inch', 'waveshare_27inch', 'waveshare27inch'):
         config['ui']['display']['type'] = 'waveshare27inch'
+
+    elif config['ui']['display']['type'] in ('ws_27inchv2', 'ws27inchv2', 'waveshare_27inchv2', 'waveshare27inchv2'):
+        config['ui']['display']['type'] = 'waveshare27inchv2'
 
     elif config['ui']['display']['type'] in ('ws_29inch', 'ws29inch', 'waveshare_29inch', 'waveshare29inch'):
         config['ui']['display']['type'] = 'waveshare29inch'
@@ -275,14 +281,23 @@ def load_config(args):
     elif config['ui']['display']['type'] in ('ws_213d', 'ws213d', 'waveshare_213d', 'waveshare213d'):
         config['ui']['display']['type'] = 'waveshare213d'
 
+    elif config['ui']['display']['type'] in ('ws_213g', 'ws213g', 'waveshare_213g', 'waveshare213g'):
+        config['ui']['display']['type'] = 'waveshare213g'
+
     elif config['ui']['display']['type'] in ('ws_213bc', 'ws213bc', 'waveshare_213bc', 'waveshare213bc'):
         config['ui']['display']['type'] = 'waveshare213bc'
+
+    elif config['ui']['display']['type'] in ('ws_213bv4', 'ws213bv4', 'waveshare_213bv4', 'waveshare213inb_v4'):
+        config['ui']['display']['type'] = 'waveshare213inb_v4'
 
     elif config['ui']['display']['type'] in ('waveshare35lcd'):
         config['ui']['display']['type'] = 'waveshare35lcd'
 
     elif config['ui']['display']['type'] in ('spotpear24inch'):
         config['ui']['display']['type'] = 'spotpear24inch'
+
+    elif config['ui']['display']['type'] in ('displayhatmini'):
+        config['ui']['display']['type'] = 'displayhatmini'
 
     else:
         print("unsupported display type %s" % config['ui']['display']['type'])

@@ -1,9 +1,9 @@
 main.name = ""
 main.lang = "en"
 main.confd = "/etc/pwnagotchi/conf.d/"
-main.custom_plugins = ""
+main.custom_plugins = "/usr/local/share/pwnagotchi/custom-plugins"
 main.custom_plugin_repos = [
-  "https://github.com/evilsocket/pwnagotchi-plugins-contrib/archive/master.zip"
+  "https://git.chadwaltercummings.me/scifijunkie/pwnagotchi-plugins-contrib.git"
 ]
 main.iface = "mon0"
 main.mon_start_cmd = "/usr/bin/monstart"
@@ -17,6 +17,8 @@ main.whitelist = [
   "fo:od:ba"
 ]
 main.filter = ""
+
+main.log.debug = false
 
 main.plugins.grid.enabled = true
 main.plugins.grid.report = false
@@ -33,7 +35,7 @@ main.plugins.net-pos.api_key = "test"
 
 main.plugins.gps.enabled = false
 main.plugins.gps.speed = 19200
-main.plugins.gps.device = "/dev/ttyUSB0"
+main.plugins.gps.device = "/dev/ttyUSB0" # for GPSD: "localhost:2947"
 
 main.plugins.webgpsmap.enabled = false
 
@@ -47,6 +49,7 @@ main.plugins.wpa-sec.enabled = false
 main.plugins.wpa-sec.api_key = ""
 main.plugins.wpa-sec.api_url = "https://wpa-sec.stanev.org"
 main.plugins.wpa-sec.download_results = false
+main.plugins.wpa-sec.download_interval = 3600
 main.plugins.wpa-sec.whitelist = []
 
 main.plugins.wigle.enabled = false
@@ -83,7 +86,10 @@ main.plugins.memtemp.scale = "celsius"
 main.plugins.memtemp.orientation = "horizontal"
 
 main.plugins.paw-gps.enabled = false
-main.plugins.paw-gps.ip = ""
+main.plugins.paw-gps.ip = "192.168.44.1:8080"
+
+main.plugins.ups_lite.enabled = false
+main.plugins.ups_lite.shutdown = 2
 
 main.plugins.gpio_buttons.enabled = false
 

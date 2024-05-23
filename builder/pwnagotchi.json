@@ -3,95 +3,34 @@
     {
       "name": "pwnagotchi",
       "type": "arm-image",
-      "iso_url": "https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2020-02-14/2020-02-13-raspbian-buster-lite.zip",
-      "iso_checksum": "12ae6e17bf95b6ba83beca61e7394e7411b45eba7e6a520f434b0748ea7370e8",
-      "target_image_size": 6442450944
+      "iso_url": "https://downloads.raspberrypi.org/raspios_oldstable_lite_armhf/images/raspios_oldstable_lite_armhf-2023-05-03/2023-05-03-raspios-buster-armhf-lite.img.xz",
+      "iso_checksum": "3d210e61b057de4de90eadb46e28837585a9b24247c221998f5bead04f88624c",
+      "target_image_size": 9368709120,
+      "qemu_args": ["-cpu", "arm1176"]
     }
   ],
   "provisioners": [
     {
       "type": "shell",
       "inline": [
-        "sed -i 's/^\\([^#]\\)/#\\1/g' /etc/ld.so.preload",
+        "mv /etc/ld.so.preload /etc/ld.so.preload.DISABLED",
+        "uname -a",
         "dpkg-architecture",
-        "apt -y update --allow-releaseinfo-change",
-        "apt install -y ansible"
+        "mkdir -p /usr/local/src/pwnagotchi"
       ]
     },
     {
       "type": "file",
-      "source": "data/usr/bin/pwnlib",
-      "destination": "/usr/bin/pwnlib"
-    },
-    {
-      "type": "file",
-      "source": "data/usr/bin/bettercap-launcher",
-      "destination": "/usr/bin/bettercap-launcher"
-    },
-    {
-      "type": "file",
-      "source": "data/usr/bin/pwnagotchi-launcher",
-      "destination": "/usr/bin/pwnagotchi-launcher"
-    },
-    {
-      "type": "file",
-      "source": "data/usr/bin/monstop",
-      "destination": "/usr/bin/monstop"
-    },
-    {
-      "type": "file",
-      "source": "data/usr/bin/monstart",
-      "destination": "/usr/bin/monstart"
-    },
-    {
-      "type": "file",
-      "source": "data/usr/bin/hdmion",
-      "destination": "/usr/bin/hdmion"
-    },
-    {
-      "type": "file",
-      "source": "data/usr/bin/hdmioff",
-      "destination": "/usr/bin/hdmioff"
-    },
-    {
-      "type": "file",
-      "source": "data/etc/network/interfaces.d/lo-cfg",
-      "destination": "/etc/network/interfaces.d/lo-cfg"
-    },
-    {
-      "type": "file",
-      "source": "data/etc/network/interfaces.d/wlan0-cfg",
-      "destination": "/etc/network/interfaces.d/wlan0-cfg"
-    },
-    {
-      "type": "file",
-      "source": "data/etc/network/interfaces.d/usb0-cfg",
-      "destination": "/etc/network/interfaces.d/usb0-cfg"
-    },
-    {
-      "type": "file",
-      "source": "data/etc/network/interfaces.d/eth0-cfg",
-      "destination": "/etc/network/interfaces.d/eth0-cfg"
-    },
-    {
-      "type": "file",
-      "source": "data/etc/systemd/system/pwngrid-peer.service",
-      "destination": "/etc/systemd/system/pwngrid-peer.service"
-    },
-    {
-      "type": "file",
-      "source": "data/etc/systemd/system/pwnagotchi.service",
-      "destination": "/etc/systemd/system/pwnagotchi.service"
-    },
-    {
-      "type": "file",
-      "source": "data/etc/systemd/system/bettercap.service",
-      "destination": "/etc/systemd/system/bettercap.service"
+      "sources": [
+        "../dist/pwnagotchi-{{user `pwn_version`}}.tar.gz"
+      ],
+      "destination": "/usr/local/src/pwnagotchi/"
     },
     {
       "type": "shell",
       "inline": [
-        "chmod +x /usr/bin/*"
+        "apt-get -y --allow-releaseinfo-change update",
+        "apt-get install -y --no-install-recommends ansible"
       ]
     },
     {
@@ -103,7 +42,7 @@
     {
       "type": "shell",
       "inline": [
-        "sed -i 's/^#\\(.+\\)/\\1/g' /etc/ld.so.preload"
+        "mv /etc/ld.so.preload.DISABLED /etc/ld.so.preload"
       ]
     }
   ]

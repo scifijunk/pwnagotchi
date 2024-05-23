@@ -221,7 +221,7 @@ def setup_logging(args, config):
     formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
     root = logging.getLogger()
 
-    root.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    root.setLevel(logging.DEBUG if args.debug or cfg['debug']==True else logging.INFO)
 
     if filename:
         # since python default log rotation might break session data in different files,
@@ -307,3 +307,5 @@ def do_rotate(filename, stats, cfg):
     with open(log_filename, 'rb') as src:
         with gzip.open(archive_filename, 'wb') as dst:
             dst.writelines(src)
+
+    os.remove(log_filename)

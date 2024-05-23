@@ -85,7 +85,6 @@ def _send_to_wigle(lines, api_key, donate=True, timeout=30):
                'Accept': 'application/json'}
     data = {'donate': 'on' if donate else 'false'}
     payload = {'file': dummy, 'type': 'text/csv'}
-
     try:
         res = requests.post('https://api.wigle.net/api/v2/file/upload',
                             data=data,
@@ -141,7 +140,7 @@ class Wigle(plugins.Plugin):
         all_files = os.listdir(handshake_dir)
         all_gps_files = [os.path.join(handshake_dir, filename)
                          for filename in all_files
-                         if filename.endswith('.gps.json' or filename.endswith('.paw-gps.json') or filename.endswith('.geo.json')]
+                         if filename.endswith('.gps.json') or filename.endswith('.paw-gps.json') or filename.endswith('.geo.json')]
 
         all_gps_files = remove_whitelisted(all_gps_files, self.options['whitelist'])
         new_gps_files = set(all_gps_files) - set(reported) - set(self.skip)

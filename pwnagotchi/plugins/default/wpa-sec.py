@@ -132,7 +132,8 @@ class WpaSec(plugins.Plugin):
                 cracked_file = os.path.join(handshake_dir, 'wpa-sec.cracked.potfile')
                 if os.path.exists(cracked_file):
                     last_check = datetime.fromtimestamp(os.path.getmtime(cracked_file))
-                    if last_check is not None and ((datetime.now() - last_check).seconds / (60 * 60)) < 1:
+                    download_interval = int(self.options['download_interval'])
+                    if last_check is not None and ((datetime.now() - last_check).seconds / download_interval) < 1:
                         return
                 try:
                     self._download_from_wpasec(os.path.join(handshake_dir, 'wpa-sec.cracked.potfile'))
