@@ -198,7 +198,10 @@
     git:
       repo: https://github.com/repaper/gratis.git
       dest: /usr/local/src/gratis
+    retries: 5000
+    delay: 5
     register: gratisgit
+    until: gratisgit is succeeded
 
   - name: build papirus service
     make:
@@ -234,19 +237,18 @@
   # Specifically, it handles mismatches between direct requirements without extras and
   # indirect requirements that do want extras (e.g. gym vs stable-baselines->gym[atari]).
   - name: Upgrade pip and install rpi-hardware-pwm
-    pip:
-      name:
-        - pip>=20.3
-        - rpi-hardware-pwm
+    shell: "python3 -m pip install pip>=20.3 rpi-hardware-pwm --verbose --retries 5000"
+    args:
+      executable: /bin/bash
 
   # We need the --ignore-installed option so that pip simply overwrites/upgrades existing
   # packages instead of trying to uninstall them first.  While this sounds dangerous,
   # this matches the legacy behavior of pip.  This is required to prevent pip from trying
   # (and failing) to uninstall python packages that were originally installed via apt.
   - name: Install pwnagotchi from source archive
-    pip:
-      name: /usr/local/src/pwnagotchi/pwnagotchi-{{ pwnagotchi.version }}.tar.gz
-      extra_args: --verbose --prefer-binary --ignore-installed --retries 50 --index-url https://nexus.chadwaltercummings.me/repository/pypi.org/simple --extra-index-url https://nexus.chadwaltercummings.me/repository/www.piwheels.org/simple
+    shell: "python3 -m pip install /usr/local/src/pwnagotchi/pwnagotchi-{{ pwnagotchi.version }}.tar.gz --verbose --ignore-installed --retries 5000"
+    args:
+      executable: /bin/bash
 
   - name: create custom plugin directory
     file:
@@ -257,6 +259,10 @@
     git:
       repo: https://git.chadwaltercummings.me/scifijunkie/pwnagotchi-plugins-contrib.git
       dest: /usr/local/share/pwnagotchi/available-plugins
+    retries: 5000
+    delay: 5
+    register: pwnagotchipluginsgit
+    until: pwnagotchipluginsgit is succeeded
 
   - name: Copy aircrackonly.py
     copy:
@@ -300,7 +306,7 @@
     when: golang.changed
 
   - name: Install bettercap v2.32
-    shell: "export GOPATH=$HOME/go && export PATH=/usr/local/go/bin:$PATH:$GOPATH/bin && go env -w GO111MODULE=off && go get github.com/bettercap/bettercap && cd $GOPATH/src/github.com/bettercap/bettercap && make build && make install"
+    shell: "export GOPATH=$HOME/go && export PATH=/usr/local/go/bin:$PATH:$GOPATH/bin && git clone https://github.com/bettercap/bettercap.git && cd bettercap/ && make build && make install"
     args:
       executable: /bin/bash
     register: bettercap
@@ -313,7 +319,10 @@
     git:
       repo: https://github.com/bettercap/caplets.git
       dest: /tmp/caplets
+    retries: 5000
+    delay: 5
     register: capletsgit
+    until: capletsgit is succeeded
 
   - name: install bettercap caplets
     make:
@@ -334,7 +343,10 @@
       repo: https://github.com/seemoo-lab/nexmon.git
       dest: /usr/local/src/nexmon
 #      version: bfb3fe90c881498d7ee245b38f16722c1de26fa1
+    retries: 5000
+    delay: 5
     register: nexmongit
+    until: nexmongit is succeeded
 
   - name: configure libisl
     command: chdir=/usr/local/src/nexmon/buildtools/isl-0.10/ ./configure
@@ -545,12 +557,6 @@
       dest: /home/pi/.bashrc
       line: "\nalias pwnlog='tail -f -n300 /var/log/pwn*.log | sed --unbuffered \"s/,[[:digit:]]\\{3\\}\\]//g\" | cut -d \" \" -f 2-'"
       insertafter: EOF
-
-  - name: install bettercap caplets
-    make:
-      chdir: /tmp/caplets
-      target: install
-    when: capletsgit.changed
 
   - name: add HDMI powersave to rc.local
     blockinfile:

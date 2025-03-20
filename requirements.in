@@ -3,8 +3,8 @@
 # If you get "error: no such option: --prefer-binary" then you need to run:
 #   pip3 install --upgrade "pip>=20.2"
 --prefer-binary
---index-url "https://nexus.chadwaltercummings.me/repository/www.piwheels.org/simple"
---extra-index-url "https://nexus.chadwaltercummings.me/repository/pypi.org/simple"
+#--index-url "https://nexus.chadwaltercummings.me/repository/www.piwheels.org/simple"
+#--extra-index-url "https://nexus.chadwaltercummings.me/repository/pypi.org/simple"
 
 # Used for bluetooth tethering plugin.
 dbus-python~=1.2
